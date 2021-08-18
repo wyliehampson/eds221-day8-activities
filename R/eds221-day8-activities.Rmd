@@ -1,0 +1,130 @@
+---
+title: "EDS 221 Day 8 Activities"
+author: "Wylie Hampson"
+date: "8/18/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+library(janitor)
+library(patchwork)
+library(ggrepel)
+library(gghighlight)
+library(paletteer)
+library(ggExtra)
+library(ggbeeswarm)
+library(gapminder)
+library(sf)
+```
+
+## Read in space launce data
+
+```{r}
+space_launches <- read_csv(here::here("data", "space_launches.csv"))
+```
+
+Make an awful graph!
+
+```{r}
+space_launches <- space_launches %>% 
+  drop_na(variant)
+
+bad_graph <- ggplot(data = space_launches, aes(x = agency_type, y = JD)) +
+  geom_boxplot(aes(fill = agency_type)) +
+  labs(x = "stuff",
+       y = "other stuff") +
+  scale_fill_paletteer_d(palette = "vapoRwave::mallSoft") +
+  theme(
+    panel.background = element_rect(fill = "black"),
+    plot.background = element_rect(fill = "tan"),
+    panel.grid.major.x = element_line(color = "purple",
+                                      size = 4),
+    panel.grid.minor.x = element_line(color = "blue",
+                                      size = 3),
+    panel.grid.major.y = element_line(color = "cyan",
+                                      size = 5),
+    panel.grid.minor.y = element_line(color = "pink",
+                                      size = 3),
+    axis.title = element_text(color = "brown",
+                              size = 45,
+                              family = "Comic Sans MS",
+                              angle = 350),
+    legend.text = element_text(color = "hot pink",
+                               size = 20,
+                               family = "Comic Sans MS",
+                               angle = 45),
+    legend.background = element_rect(fill = "black"),
+    axis.text = element_text(color = "green",
+                             size = 15,
+                             angle = 45)
+  )
+
+bad_graph
+
+ggsave(here::here("figs", "bad_graph.jpg"))
+```
+
+## Task two
+
+read in the csv
+
+```{r}
+sf_greenhouse <- read_csv(here::here("data", "San_Francisco_Communitywide_Greenhouse_Gas_Inventory.csv"))
+```
+
+Create a summary table
+
+```{r}
+sf_greenhouse_sumamry_sector <- sf_greenhouse %>% 
+  group_by(Sector_General) %>% 
+  summarize(total_emissions = sum(Emissions_mtCO2e, na.rm = TRUE))
+
+sf_greenhouse_summary_year_type <- sf_greenhouse %>% 
+  group_by(Calendar_Year, Commodity_Type) %>% 
+  summarize(total_emissions = sum(Emissions_mtCO2e, na.rm = TRUE))
+
+sf_greenhouse_subset <- sf_greenhouse %>% 
+  filter(Calendar_Year >= 2005) %>% 
+  filter(str_detect(Sector_Detail2, "PG&E")) %>% 
+  select(Calendar_Year, Sector_Detail2, Emissions_mtCO2e)
+```
+
+Make your best graph!
+
+```{r}
+sf_greenhouse_final <- sf_greenhouse %>% 
+  group_by(Sector_General, Calendar_Year) %>% 
+  summarize(total_emissions = sum(Emissions_mtCO2e)) %>% 
+  filter(Sector_General %in% c("Transportation", "Buildings")) %>% 
+  mutate(emissions_kilotons = total_emissions / 1000)
+
+good_graph <- ggplot(sf_greenhouse_final, aes(x = Calendar_Year, y = emissions_kilotons)) +
+  geom_line(size = 2, aes(color = Sector_General)) +
+  labs(x = "Year",
+       y = "Total Emissions (Kilotons)",
+       title = "SF Building vs. Transport Emissions 1990-2019",
+       subtitle = "Total emissions from buildings and transportaion in SF 1990-2019",
+       ) +
+  theme(
+    legend.title = element_blank()
+  ) +
+  scale_y_continuous(limits = c(0, 5000))
+
+good_graph
+
+ggsave(here::here("figs", "good_graph.jpg"), plot = good_graph)
+```
+
+
+
+
+
+
+
+
+
+
+
